@@ -3,6 +3,7 @@
 **Accepted at ACCV 2026**
 
 **Paper:** Coming soon
+
 **CASE_DATA:** [GitHub Release v1.0](https://github.com/WongKinYiu/FSS-CASE/releases/tag/v1.0)
 
 This repository contains the official implementation and benchmark release for **CASE: Concept-Aware Segmentation from Positive and Negative Visual Exemplars**.
