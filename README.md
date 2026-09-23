@@ -1,56 +1,132 @@
 # CASE: Concept-Aware Segmentation from Positive and Negative Visual Exemplars
 
-Official code and benchmark release for **CASE**, including the **CASE benchmark** and **Concept Prompt Adaptation (CPA)** built on SAM 3.
+**Accepted at ACCV 2026**
 
-CASE studies segmentation from positive and negative visual exemplars. The benchmark contains six task families spanning category-level and attribute-level compositional visual prompts, and CPA adapts SAM 3 with lightweight LoRA while preserving positive-only behavior.
+**Paper:** Coming soon
+**CASE_DATA:** [GitHub Release v1.0](https://github.com/WongKinYiu/FSS-CASE/releases/tag/v1.0)
 
-> **Paper:** publication link will be added here.  
-> **CASE_DATA:** dataset download link will be added here.
+This repository contains the official implementation and benchmark release for **CASE: Concept-Aware Segmentation from Positive and Negative Visual Exemplars**.
 
----
+Few-shot semantic segmentation typically identifies target objects from positive support examples of a single semantic class. However, positive cues alone can be underspecified when the intended target depends on exclusion, fine-grained discrimination, functional grouping, or visual attributes.
 
-## Overview
+We formulate this setting as **Specified Visual Prompt Segmentation (SVPS)**, where the target concept is specified jointly by **positive and negative visual prompts**. In CASE, visual exemplars are support-image regions specified by bounding-box prompts: positive exemplars provide inclusion evidence, while negative exemplars act as intent-defining constraints for exclusion and disambiguation.
 
-CASE contains six benchmark tasks:
+To study SVPS, we introduce **CASE**, a benchmark built on COCO and PACO, and **Concept Prompt Adaptation (CPA)**, a conservative LoRA-based adaptation of SAM 3 designed to improve positive-negative prompt interpretation while preserving competitive positive-only few-shot segmentation performance.
 
-| Chapter | Task | Description |
-| --- | --- | --- |
-| Category | SuperEx | Segment a super-category while excluding a specified category |
-| Category | FineIso | Isolate a fine-grained category from related distractors |
-| Category | Union | Segment the union of multiple positive categories |
-| Attribute | AttrEx | Segment objects while excluding a specified attribute |
-| Attribute | AttrIso | Isolate objects with a target attribute from attribute distractors |
-| Attribute | AttrUnion | Segment the union defined by a target attribute |
+## CASE Benchmark
 
-The released runtime metadata contains frozen query masks, visual prompt boxes, fixed 1-shot/5-shot evaluation supports, and training support pools. COCO/PACO annotations are therefore **not required at training or CASE evaluation time**.
+CASE contains six task families covering category-level and attribute-level concept specification.
 
-Source images are not redistributed by this repository. Users must obtain the corresponding COCO images separately.
+| Task          | Target concept                                                 | Positive exemplars                                                  | Negative exemplars                                                   |
+| ------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| **SuperEx**   | Supercategory excluding one class, e.g., vehicles except cars  | Included classes from the supercategory, e.g., buses and trains     | The excluded class, e.g., cars                                       |
+| **FineIso**   | One fine-grained class within a supercategory, e.g., dogs      | Target class instances, e.g., dogs                                  | Related distractor classes, e.g., cats or sheep                      |
+| **Union**     | Classes sharing a common function, e.g., furniture for resting | Functionally related classes, e.g., beds and sofas                  | Related classes with different functions, e.g., chairs or tables     |
+| **AttrEx**    | A category excluding one attribute, e.g., non-red cars         | Instances without the excluded attribute, e.g., black or white cars | Instances with the excluded attribute, e.g., red cars                |
+| **AttrIso**   | A category with one specified attribute, e.g., red cars        | Target attribute instances, e.g., red cars                          | Same category with other attributes, e.g., blue or white cars        |
+| **AttrUnion** | An attribute shared across categories, e.g., wooden objects    | Diverse classes with the attribute, e.g., wooden chairs or bowls    | Similar classes without the attribute, e.g., plastic chairs or bowls |
 
----
+The category-level tasks (**SuperEx, FineIso, Union**) are constructed from COCO. The attribute-level tasks (**AttrEx, AttrIso, AttrUnion**) are constructed from PACO.
 
-## Benchmark Statistics
+Each CASE episode contains a support set with positive and negative bounding-box prompts, a query image, and a binary ground-truth query mask.
 
-| Task | Train episodes | Eval episodes / shot |
-| --- | ---: | ---: |
-| SuperEx | 156,000 | 4,502 |
-| FineIso | 140,727 | 4,331 |
-| Union | 50,000 | 903 |
-| AttrEx | 12,909 | 764 |
-| AttrIso | 66,942 | 550 |
-| AttrUnion | 34,812 | 558 |
-| **Total** | **461,390** | **11,608** |
+### Benchmark Statistics
 
-Evaluation uses nested support sets: the official 1-shot support is the first support of the corresponding 5-shot episode.
+| Task        | Source      | Training episodes | Evaluation episodes | Concepts |  Avg. Pos / Neg |
+| ----------- | ----------- | ----------------: | ------------------: | -------: | --------------: |
+| SuperEx     | COCO        |           156,000 |               9,004 |       78 |     6.71 / 2.31 |
+| FineIso     | COCO        |           140,727 |               8,662 |       79 |     2.43 / 6.17 |
+| Union       | COCO        |            50,000 |               1,806 |       25 |     5.04 / 3.96 |
+| AttrEx      | PACO        |            12,909 |               1,528 |      109 |     2.09 / 1.04 |
+| AttrIso     | PACO        |            66,942 |               1,100 |       94 |     1.04 / 2.09 |
+| AttrUnion   | PACO        |            34,812 |               1,116 |       21 |     2.15 / 1.64 |
+| **Overall** | COCO / PACO |       **461,390** |          **23,216** |  **406** | **3.94 / 3.56** |
 
----
+The training split contains candidate episodes from which support examples are sampled during training. Evaluation episodes are fixed for deterministic comparison.
+
+CASE provides both **1-shot and 5-shot** evaluation protocols. For each evaluation target, the 5-shot support set is sampled first and the corresponding 1-shot support set uses its first support image. Thus, the 1-shot support set is nested within the 5-shot support set, ensuring that both protocols evaluate the same target episodes while differing only in the amount of support evidence.
+
+## Concept Prompt Adaptation
+
+**Concept Prompt Adaptation (CPA)** adapts SAM 3 to SVPS while keeping the pretrained SAM 3 weights frozen.
+
+Following the shared-canvas formulation of FSS-SAM3, support and query images are composed into a single **1008 × 1008** canvas. Positive and negative support boxes are transformed into the canvas coordinate system and provided through the native SAM 3 box-prompt interface.
+
+CPA inserts LoRA adapters into transformer encoder and decoder layers. Training uses two prompting conditions:
+
+* **Positive-negative condition:** the adapted model receives both positive and negative exemplars and is supervised by the CASE target mask.
+* **Positive-only preservation condition:** only positive exemplars are provided, and the adapted model is regularized to remain close to the frozen SAM 3 prediction under the same positive-only input.
+
+The training objective is
+
+```
+L = L_svps^(±) + λ_pres L_pres^(+),
+```
+
+with `λ_pres = 1.0`.
+
+### CPA Configuration
+
+| Component            | Setting                                                        |
+| -------------------- | -------------------------------------------------------------- |
+| Base model           | SAM 3                                                          |
+| Input canvas         | 1008 × 1008                                                    |
+| 1-shot layout        | Vertical support-query split                                   |
+| 5-shot layout        | L-shaped support-query canvas                                  |
+| Prompt type          | Support-image bounding boxes                                   |
+| Trainable modules    | LoRA adapters                                                  |
+| Frozen modules       | All pretrained SAM 3 weights                                   |
+| LoRA target modules  | `q_proj`, `k_proj`, `v_proj`, `out_proj`, `linear1`, `linear2` |
+| LoRA rank            | 16                                                             |
+| LoRA scaling factor  | 32                                                             |
+| LoRA dropout         | 0.05                                                           |
+| Trainable parameters | 1.13M                                                          |
+| Optimizer            | AdamW                                                          |
+| Learning rate        | 1 × 10^-4                                                      |
+| Weight decay         | 1 × 10^-4                                                      |
+| Batch size           | 1                                                              |
+| Dataloader workers   | 2                                                              |
+| Training epochs      | 10                                                             |
+| Random seed          | 123                                                            |
+| Mixed precision      | bfloat16 autocast on CUDA                                      |
+| Gradient clipping    | Maximum norm 1.0                                               |
+| Preservation weight  | 1.0                                                            |
+
+For 1-shot episodes, the support image occupies the top half of the canvas and the query image occupies the bottom half.
+
+For 5-shot episodes, CPA uses an L-shaped layout with three support images in the top row, two in the left column, and the query image in the bottom-right region.
+
+## Main Results
+
+### CASE
+
+The main paper reports the following aggregated results for CPA with positive-negative prompts.
+
+| Setting     | Category mIoU | Attribute mIoU | Mean mIoU |
+| ----------- | ------------: | -------------: | --------: |
+| CPA, 1-shot |         48.63 |          23.04 | **35.83** |
+| CPA, 5-shot |         57.15 |          27.14 | **42.15** |
+
+For comparison, frozen FSS-SAM3 with positive-negative prompts obtains **18.62** mean mIoU in 1-shot and **34.14** in 5-shot.
+
+### Conventional Positive-Only FSS
+
+To examine whether adaptation preserves conventional positive-only few-shot segmentation ability, CPA is also evaluated on COCO-20i under the standard positive-only protocol.
+
+| Method               | 1-shot mIoU | 5-shot mIoU |
+| -------------------- | ----------: | ----------: |
+| FSS-SAM3             |        66.6 |        71.8 |
+| CPA w/o Preservation |        50.8 |        66.8 |
+| **CPA**              |    **61.6** |    **74.8** |
+
+These results illustrate the role of positive-only preservation: CPA improves positive-negative prompt interpretation on CASE while retaining strong conventional few-shot segmentation performance.
 
 ## Repository Structure
 
-```text
-CASE/
+```
+FSS-CASE/
 ├── README.md
 ├── requirements.txt
-├── environment.txt
 ├── data/
 │   ├── case_dataset.py
 │   └── coco20i_dataset.py
@@ -59,7 +135,6 @@ CASE/
 │   ├── eval_case.py
 │   ├── eval_coco20i.py
 │   └── sam3/
-│       └── ...
 └── tools/
     └── dataset_builder/
         ├── build_superex.py
@@ -72,85 +147,56 @@ CASE/
         └── compile_case_data.py
 ```
 
----
-
 ## Installation
 
-The release was validated with:
+Clone the repository:
 
-- Python 3.12.12
-- PyTorch 2.11.0 + CUDA 12.8
-- torchvision 0.26.0
-- NVIDIA GPU with BF16 support
-
-Create an environment:
-
-```bash
-conda create -n case python=3.12.12 -y
-conda activate case
+```
+git clone https://github.com/WongKinYiu/FSS-CASE.git
+cd FSS-CASE
 ```
 
-Install the tested CUDA 12.8 PyTorch build:
+Create a Python environment and install a PyTorch build appropriate for your system. Then install the remaining dependencies:
 
-```bash
-pip install torch==2.11.0 torchvision==0.26.0   --index-url https://download.pytorch.org/whl/cu128
 ```
-
-Install the remaining dependencies:
-
-```bash
 pip install -r requirements.txt
 ```
 
-### SAM 3 checkpoint access
+### SAM 3 Checkpoint
 
-This repository vendors the SAM 3 implementation used by CASE under `model/sam3/`, but **does not redistribute the SAM 3 model weights**.
+CPA uses SAM 3 as its base model. The pretrained SAM 3 weights are **not redistributed** in this repository.
 
-Before the first run:
+Please obtain access to the official SAM 3 checkpoint and authenticate with Hugging Face before running training or evaluation.
 
-1. Request access to the official `facebook/sam3` model on Hugging Face.
-2. Authenticate locally:
-
-```bash
-hf auth login
-```
-
-The model builder downloads `sam3.pt` from Hugging Face automatically when no local SAM 3 checkpoint is specified.
-
-The vendored SAM 3 implementation remains subject to its license in:
-
-```text
-model/sam3/LICENSE
-```
-
----
+The SAM 3 source code required by this project is included under `model/sam3/`. Its original license is provided in `model/sam3/LICENSE`.
 
 ## CASE_DATA
 
-### Where to place it
+CASE_DATA contains the released benchmark metadata used by the public loader.
 
-After downloading and extracting the benchmark, the simplest local layout is:
+Download it from:
 
-```text
-CASE/
-├── CASE_DATA/
-├── data/
-├── model/
-├── tools/
-└── ...
+**[CASE_DATA v1.0](https://github.com/WongKinYiu/FSS-CASE/releases/tag/v1.0)**
+
+The release provides six training archives, one evaluation archive, the benchmark manifest, and SHA256 checksums:
+
+```
+CASE_DATA_train_SuperEx.tar.gz
+CASE_DATA_train_FineIso.tar.gz
+CASE_DATA_train_Union.tar.gz
+CASE_DATA_train_AttrEx.tar.gz
+CASE_DATA_train_AttrIso.tar.gz
+CASE_DATA_train_AttrUnion.tar.gz
+CASE_DATA_eval.tar.gz
+CASE_DATA_manifest.json
+SHA256SUMS
 ```
 
-`CASE_DATA/` is excluded by `.gitignore`, so it can safely live inside the repository working directory without being committed.
+CASE_DATA distributes benchmark metadata, visual prompt annotations, fixed evaluation supports, and frozen query masks. Source images are not redistributed and must be obtained from the corresponding source datasets.
 
-All examples below therefore use:
+After extraction, organize the benchmark as:
 
-```bash
---case-data-root ./CASE_DATA
 ```
-
-### Public CASE_DATA layout
-
-```text
 CASE_DATA/
 ├── manifest.json
 ├── train/
@@ -164,259 +210,130 @@ CASE_DATA/
 │       └── AttrUnion/episodes.sqlite
 └── eval/
     ├── 1shot/
-    │   ├── vc_cat/<task>/*.json.gz
-    │   └── vc_attr/<task>/*.json.gz
     └── 5shot/
-        ├── vc_cat/<task>/*.json.gz
-        └── vc_attr/<task>/*.json.gz
 ```
 
-Training metadata is stored in random-access SQLite databases with independently compressed episode payloads. This keeps memory usage approximately constant instead of expanding all 461k training episodes into RAM.
+Training episodes are stored in task-specific SQLite databases for random-access sampling. Fixed evaluation episodes are distributed separately for the 1-shot and 5-shot protocols.
 
-### Source images
+The released query masks are stored as COCO-style RLE so that evaluation does not require regenerating masks from the original source annotations.
 
-CASE metadata stores relative image paths. For the official benchmark these paths resolve against COCO 2017 train/validation images.
+## Training CPA
 
-A typical image root is:
-
-```text
-/path/to/COCO2017/
-├── train2017/
-└── val2017/
-```
-
-Use that directory as:
-
-```bash
---image-root /path/to/COCO2017
-```
-
-PACO-based CASE tasks use the corresponding COCO images; PACO annotation files are needed only when reconstructing the benchmark.
-
----
-
-## Train CPA
-
-CPA trains LoRA adapters on frozen SAM 3.
-
-The paper configuration uses:
-
-- LoRA rank 16
-- LoRA alpha 32
-- LoRA dropout 0.05
-- AdamW, learning rate 1e-4
-- weight decay 1e-4
-- preservation weight 1.0
-- 10 epochs
-- 2,000 iterations per epoch
-- seed 123
-- batch size 1
-- BF16 autocast on CUDA
+CPA is trained separately for the requested shot setting.
 
 ### 1-shot
 
-```bash
-python model/train_cpa.py   --case-data-root ./CASE_DATA   --image-root /path/to/COCO2017   --output-dir ./checkpoints/cpa_1shot   --k-shot 1   --num-epochs 10   --epoch-size 2000   --num-workers 2   --seed 123
 ```
-
-The final PEFT checkpoint is written to:
-
-```text
-checkpoints/cpa_1shot/epoch_10/
+python model/train_cpa.py \
+    --shot 1 \
+    --case-data-root ./CASE_DATA \
+    --image-root /path/to/source/images \
+    --save-dir ./checkpoints/cpa_1shot
 ```
 
 ### 5-shot
 
-```bash
-python model/train_cpa.py   --case-data-root ./CASE_DATA   --image-root /path/to/COCO2017   --output-dir ./checkpoints/cpa_5shot   --k-shot 5   --num-epochs 10   --epoch-size 2000   --num-workers 2   --seed 123
+```
+python model/train_cpa.py \
+    --shot 5 \
+    --case-data-root ./CASE_DATA \
+    --image-root /path/to/source/images \
+    --save-dir ./checkpoints/cpa_5shot
 ```
 
-The final PEFT checkpoint is written to:
+The default release configuration follows the CPA settings reported in the paper: LoRA rank 16, scaling factor 32, learning rate `1e-4`, weight decay `1e-4`, batch size 1, 10 training epochs, random seed 123, and positive-only preservation weight 1.0.
 
-```text
-checkpoints/cpa_5shot/epoch_10/
+## Evaluation on CASE
+
+CASE supports both positive-negative and positive-only evaluation.
+
+### Positive-Negative
+
+```
+python model/eval_case.py \
+    --shot 1 \
+    --prompt-mode posneg \
+    --checkpoint /path/to/cpa_checkpoint \
+    --case-data-root ./CASE_DATA \
+    --image-root /path/to/source/images
 ```
 
-Do not enable `--padding` when reproducing the default paper configuration.
+For 5-shot evaluation, use:
 
----
-
-## Evaluate on CASE
-
-`model/eval_case.py` supports both positive-negative and positive-only prompting.
-
-### Example: 1-shot SuperEx, positive-negative prompts
-
-```bash
-python model/eval_case.py   --checkpoint ./checkpoints/cpa_1shot/epoch_10   --chapter vc_cat   --task SuperEx   --k-shot 1   --prompt-mode posneg   --case-data-root ./CASE_DATA   --image-root /path/to/COCO2017   --output-json ./results/superex_1shot_posneg.json
+```
+--shot 5
 ```
 
-### Positive-only evaluation
+### Positive-Only
 
-Use the same checkpoint with:
-
-```bash
---prompt-mode pos
+```
+python model/eval_case.py \
+    --shot 1 \
+    --prompt-mode pos \
+    --checkpoint /path/to/cpa_checkpoint \
+    --case-data-root ./CASE_DATA \
+    --image-root /path/to/source/images
 ```
 
-For example:
+The evaluator reports task-wise mIoU and the equal-weight mean across the six CASE task families.
 
-```bash
-python model/eval_case.py   --checkpoint ./checkpoints/cpa_1shot/epoch_10   --chapter vc_cat   --task SuperEx   --k-shot 1   --prompt-mode pos   --case-data-root ./CASE_DATA   --image-root /path/to/COCO2017   --output-json ./results/superex_1shot_pos.json
+## Evaluation on COCO-20i
+
+CPA is evaluated on COCO-20i using the standard positive-only FSS protocol. Support masks are converted into tight bounding boxes and used as positive visual prompts; no negative prompts are provided.
+
+Use:
+
+```
+python model/eval_coco20i.py --help
 ```
 
-Task/chapter mapping:
+for the available dataset, fold, shot, and checkpoint arguments.
 
-```text
-vc_cat  : SuperEx, FineIso, Union
-vc_attr : AttrEx, AttrIso, AttrUnion
+The checkpoint argument can be omitted when evaluating the frozen SAM 3 baseline.
+
+## Benchmark Reconstruction
+
+The released CASE_DATA files are sufficient for normal CPA training and CASE evaluation.
+
+The scripts under `tools/dataset_builder/` are provided for reproducibility of benchmark construction from the original COCO and PACO annotations.
+
+The reconstruction pipeline consists of:
+
+1. building task-specific candidate training and validation episodes;
+2. freezing nested 1-shot and 5-shot evaluation supports;
+3. compiling the runtime release representation with frozen RLE target masks.
+
+Task builders share the interface:
+
+```
+python tools/dataset_builder/build_superex.py --help
+python tools/dataset_builder/build_fineiso.py --help
+python tools/dataset_builder/build_union.py --help
+python tools/dataset_builder/build_attrex.py --help
+python tools/dataset_builder/build_attriso.py --help
+python tools/dataset_builder/build_attrunion.py --help
 ```
 
-For 5-shot evaluation, use the 5-shot CPA checkpoint and `--k-shot 5`.
+Evaluation support freezing and release compilation are handled by:
 
----
-
-## Evaluate on COCO-20i
-
-COCO-20i evaluation uses COCO 2014 validation images and annotations.
-
-Expected layout:
-
-```text
-/path/to/COCO2014/
-├── val2014/
-└── annotations/
-    └── instances_val2014.json
 ```
-
-### CPA 1-shot
-
-```bash
-python model/eval_coco20i.py   --checkpoint ./checkpoints/cpa_1shot/epoch_10   --shot 1   --data-root /path/to/COCO2014   --seed 0   --folds 0 1 2 3   --output-json ./results/coco20i_1shot.json
+python tools/dataset_builder/freeze_eval_supports.py --help
+python tools/dataset_builder/compile_case_data.py --help
 ```
-
-### CPA 5-shot
-
-```bash
-python model/eval_coco20i.py   --checkpoint ./checkpoints/cpa_5shot/epoch_10   --shot 5   --data-root /path/to/COCO2014   --seed 0   --folds 0 1 2 3   --output-json ./results/coco20i_5shot.json
-```
-
-To evaluate frozen SAM 3, omit `--checkpoint`.
-
----
-
-## Rebuilding CASE from COCO and PACO
-
-Most users should use the released `CASE_DATA`. The following utilities are provided for benchmark reconstruction and reproducibility.
-
-The reconstruction pipeline is:
-
-```text
-COCO / PACO annotations
-        │
-        ▼
-build_<task>.py
-        │
-        ▼
-intermediate CASE metadata
-        │
-        ▼
-freeze_eval_supports.py
-        │
-        ▼
-fixed nested 1-shot / 5-shot evaluation splits
-        │
-        ▼
-compile_case_data.py
-        │
-        ▼
-public CASE_DATA
-```
-
-### 1. Build category-level metadata
-
-COCO 2017 training:
-
-```bash
-for TASK in superex fineiso union; do
-  python "tools/dataset_builder/build_${TASK}.py"     --split train     --annotation-file /path/to/annotations/instances_train2017.json     --output-root ./CASE_METADATA     --seed 2026
-done
-```
-
-COCO 2017 validation:
-
-```bash
-for TASK in superex fineiso union; do
-  python "tools/dataset_builder/build_${TASK}.py"     --split val     --annotation-file /path/to/annotations/instances_val2017.json     --output-root ./CASE_METADATA
-done
-```
-
-### 2. Build attribute-level metadata
-
-PACO training:
-
-```bash
-for TASK in attrex attriso attrunion; do
-  python "tools/dataset_builder/build_${TASK}.py"     --split train     --annotation-file /path/to/paco_lvis_v1_train.json     --output-root ./CASE_METADATA     --seed 2026
-done
-```
-
-PACO validation:
-
-```bash
-for TASK in attrex attriso attrunion; do
-  python "tools/dataset_builder/build_${TASK}.py"     --split val     --annotation-file /path/to/paco_lvis_v1_val.json     --output-root ./CASE_METADATA
-done
-```
-
-### 3. Freeze the official nested evaluation supports
-
-```bash
-python tools/dataset_builder/freeze_eval_supports.py   --metadata-root ./CASE_METADATA   --output-root ./CASE_OFFICIAL_SPLITS   --seed 42
-```
-
-The 1-shot and 5-shot sets are nested: 1-shot is obtained from the first item of the same sampled 5-shot support set.
-
-### 4. Compile the public CASE_DATA release
-
-```bash
-python tools/dataset_builder/compile_case_data.py   --train-metadata-root ./CASE_METADATA   --eval-splits-root ./CASE_OFFICIAL_SPLITS   --coco-train-ann /path/to/annotations/instances_train2017.json   --coco-val-ann /path/to/annotations/instances_val2017.json   --paco-train-ann /path/to/paco_lvis_v1_train.json   --paco-val-ann /path/to/paco_lvis_v1_val.json   --output-root ./CASE_DATA
-```
-
-A successful full build validates the formal train/evaluation episode counts.
-
-The compiler freezes query masks using the exact target-mask semantics used by the submitted CASE experiments. It may report informational differences between historical builder-side `gt_foreground_pixels` values and the runtime mask area; the released `CASE_DATA` rewrites the foreground area from the frozen runtime mask.
-
----
 
 ## Reproducibility Notes
 
-- Evaluation support sampling uses seed 42.
-- The official 1-shot support is nested inside the corresponding 5-shot support set.
-- Training benchmark construction uses seed 2026.
-- CPA training uses seed 123.
-- COCO-20i evaluation uses seed 0 by default.
-- CASE evaluation masks are frozen as COCO RLE and do not require COCO/PACO annotations at runtime.
-- Support prompt boxes are preserved from the benchmark metadata and are not truncated during public release compilation.
-- The public training loader samples a CASE task uniformly and then samples an episode uniformly within that task, matching the submitted CPA training protocol.
-
----
-
-## Data and Third-Party Assets
-
-This repository does not redistribute:
-
-- COCO images
-- COCO annotations
-- PACO annotations
-- SAM 3 model weights
-
-Users are responsible for obtaining these resources from their respective official sources and complying with their terms.
-
-The vendored SAM 3 source under `model/sam3/` is distributed under the SAM license included in `model/sam3/LICENSE`.
-
----
+* CASE evaluation episodes are fixed for deterministic comparison.
+* The 1-shot support set is nested within the corresponding 5-shot support set.
+* Category-level tasks are constructed from COCO, while attribute-level tasks are constructed from PACO.
+* Training uses mixed CASE episodes across all six task families.
+* Standard FSS evaluation uses positive prompts only.
+* CASE evaluation uses the released frozen target masks rather than dynamically regenerating query ground truth.
 
 ## Citation
 
-Citation metadata for the CASE paper will be added when the final publication metadata is available.
+The citation will be added when the ACCV 2026 paper is publicly available.
+
+## Acknowledgements
+
+This project builds on SAM 3 and uses annotations from COCO and PACO. Please follow the original licenses and terms of use of these projects and datasets.
