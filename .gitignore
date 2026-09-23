@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Environments / editors
+.env
+.env.*
+.venv/
+venv/
+env/
+.vscode/
+.idea/
+
+# Training / evaluation artifacts
+checkpoints/
+results/
+outputs/
+logs/
+wandb/
+runs/
+vis_results/
+
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.log
+*.tmp
+
+# External datasets
+data/coco/
+data/COCO/
+data/PascalVOC/
+
+# CASE dataset payloads
+# Kept locally while the final public CASE_DATA package is compiled.
+
+# OS
+.DS_Store
+
+# Local dataset links / mounts
+data/VOC2012
+data/coco
+
+# Third-party SAM 3 source is vendored under model/sam3/.
+# See model/sam3/LICENSE for its license terms.
+
+# Legacy / non-release research code
+model/baselines/
+model/data/
+model/test_fss.py
+
+# CASE benchmark payload
+# Full train/eval metadata is distributed separately from the source repository.
+CASE_DATA/
+CASE/official_splits/
+CASE/release/
+CASE_DATA_SMOKE/

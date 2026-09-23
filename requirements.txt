@@ -1,0 +1,18 @@
+# CASE / CPA reproduction dependencies
+
+numpy==1.26.4
+Pillow==12.2.0
+pycocotools==2.0.10
+tqdm==4.67.1
+ijson==3.5.1
+peft==0.18.1
+transformers==4.45.2
+safetensors==0.7.0
+huggingface-hub==0.36.2
+timm==1.0.22
+einops==0.8.1
+ftfy==6.1.1
+regex==2026.2.28
+iopath==0.1.10
+typing_extensions==4.15.0
+setuptools==81.0.0
