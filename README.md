@@ -110,7 +110,7 @@ We evaluate CPA under the conventional positive-only few-shot segmentation
 protocol on COCO-20i to examine whether adaptation to SVPS preserves standard
 FSS capability. We report mIoU (%) over the four COCO-20i folds.
 
-| Method | 1-shot Fold 0 | Fold 1 | Fold 2 | Fold 3 | Mean | 5-shot Fold 0 | Fold 1 | Fold 2 | Fold 3 | Mean |
+| Method | 1-shot F0 | F1 | F2 | F3 | Mean | 5-shot F0 | F1 | F2 | F3 | Mean |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | PFENet | 36.5 | 38.6 | 34.5 | 33.8 | 35.8 | 36.5 | 43.3 | 37.8 | 38.4 | 39.0 |
 | HSNet | 36.3 | 43.1 | 38.7 | 38.7 | 39.2 | 43.3 | 51.3 | 48.2 | 45.0 | 46.9 |
