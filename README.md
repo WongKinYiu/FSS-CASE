@@ -92,9 +92,9 @@ positive-negative prompts.
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | GF-SAM | Pos Only | 31.24 | 14.81 | 23.03 | 43.47 | 21.18 | 32.32 |
 | FSSAM | Pos Only | 34.47 | 15.99 | 25.23 | 45.58 | 18.75 | 32.17 |
-| SANSA | Pos Only | 36.81 | 18.40 | 27.61 | 43.54 | 22.52 | 33.40 |
+| SANSA | Pos Only | 36.81 | 18.40 | 27.61 | 44.27 | 22.52 | 33.40 |
 | FSS-SAM3 | Pos Only | 42.82 | 18.40 | 30.61 | 51.72 | 24.48 | 38.10 |
-| FSS-SAM3 | Pos+Neg | 25.72 | 11.52 | 18.62 | 46.03 | 22.01 | 34.14 |
+| FSS-SAM3 | Pos+Neg | 25.72 | 11.52 | 18.62 | 46.03 | 22.26 | 34.14 |
 | CPA (Ours) | Pos Only | 37.26 | 19.70 | 28.48 | 52.44 | 26.16 | 39.30 |
 | **CPA (Ours)** | **Pos+Neg** | **48.63** | **23.04** | **35.83** | **57.15** | **27.14** | **42.15** |
 
@@ -106,25 +106,25 @@ setting and from 34.14 to 42.15 in the 5-shot setting.
 
 ### Positive-only FSS on COCO-20i
 
-We also evaluate CPA under the conventional positive-only few-shot segmentation
+We evaluate CPA under the conventional positive-only few-shot segmentation
 protocol on COCO-20i to examine whether adaptation to SVPS preserves standard
-FSS capability.
+FSS capability. We report mIoU (%) over the four COCO-20i folds.
 
-| Method | Type | 1-shot | 5-shot |
-| --- | --- | ---: | ---: |
-| PFENet | Classical FSS | 35.8 | 39.0 |
-| HSNet | Classical FSS | 39.2 | 46.9 |
-| BAM | Classical FSS | 46.2 | 51.2 |
-| HDMNet | Classical FSS | 50.0 | 56.0 |
-| Matcher | Foundation-based | 52.7 | 60.7 |
-| GF-SAM | Foundation-based | 58.7 | 66.8 |
-| SANSA | Foundation-based | 60.2 | 67.3 |
-| FSSAM | Foundation-based | 62.3 | 69.3 |
-| **FSS-SAM3** | Foundation-based | **66.6** | 71.8 |
-| **CPA (Ours)** | Ours | 61.6 | **74.8** |
+| Method | Type | 1-shot Fold 0 | Fold 1 | Fold 2 | Fold 3 | Mean | 5-shot Fold 0 | Fold 1 | Fold 2 | Fold 3 | Mean |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| PFENet | Classical FSS | 36.5 | 38.6 | 34.5 | 33.8 | 35.8 | 36.5 | 43.3 | 37.8 | 38.4 | 39.0 |
+| HSNet | Classical FSS | 36.3 | 43.1 | 38.7 | 38.7 | 39.2 | 43.3 | 51.3 | 48.2 | 45.0 | 46.9 |
+| BAM | Classical FSS | 43.4 | 50.6 | 47.5 | 43.4 | 46.2 | 49.3 | 54.2 | 51.6 | 49.6 | 51.2 |
+| HDMNet | Classical FSS | 43.8 | 55.3 | 51.6 | 49.4 | 50.0 | 50.6 | 61.6 | 55.7 | 56.0 | 56.0 |
+| Matcher | Foundation-based | 52.7 | 53.5 | 52.6 | 52.1 | 52.7 | 60.1 | 62.7 | 60.9 | 59.2 | 60.7 |
+| GF-SAM | Foundation-based | 56.6 | 61.4 | 59.6 | 57.1 | 58.7 | 67.1 | 69.4 | 66.0 | 64.8 | 66.8 |
+| SANSA | Foundation-based | 58.9 | 62.6 | 61.5 | 58.0 | 60.2 | – | – | – | – | 67.3 |
+| FSSAM | Foundation-based | 59.9 | 65.6 | 62.1 | 61.6 | 62.3 | 68.6 | 74.0 | 64.5 | 69.9 | 69.3 |
+| FSS-SAM3 | Foundation-based | 64.2 | 66.8 | 67.7 | 67.5 | **66.6** | 68.6 | 72.5 | 72.5 | 73.6 | 71.8 |
+| **CPA (Ours)** | **Ours** | 61.1 | 64.3 | 59.2 | 61.6 | 61.6 | **74.4** | **74.1** | **74.6** | **76.2** | **74.8** |
 
-CPA remains responsive to conventional positive visual prompts after adaptation
-and reaches 74.8 mIoU in the 5-shot setting.
+CPA remains responsive to conventional positive visual prompts after adaptation,
+achieving 74.8 mIoU in the 5-shot setting.
 
 ## Dataset Details
 
