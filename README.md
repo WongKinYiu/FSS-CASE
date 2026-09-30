@@ -35,7 +35,7 @@ To study this setting, we introduce:
   improves positive-negative prompt interpretation while preserving
   positive-only few-shot segmentation ability.
 
-  ## CASE Benchmark
+## CASE Benchmark
 
 CASE evaluates whether a model can infer a target concept from the relationship
 between positive and negative visual exemplars.
@@ -58,8 +58,7 @@ between positive and negative visual exemplars.
 - **AttrUnion — Attribute Union:** group objects across categories that share
   the same visual attribute.
 
-  CASE contains **461,390 candidate training episodes** and **23,216 fixed
-evaluation episodes** across **406 structured concepts**.
+CASE contains **461,390 candidate training episodes** and **23,216 fixed evaluation episodes** across **406 structured concepts**.
 
 - Category-level tasks are constructed from COCO.
 - Attribute-level tasks are constructed from PACO.
@@ -308,8 +307,6 @@ If you find **CASE**, **SVPS**, or **CPA** useful in your research, please consi
 > BibTeX will be added once the ACCV 2026 paper is publicly available.
 
 ## License
-
-The project-level license for the original CASE and CPA code will be specified before the public release.
 
 The SAM 3 source code included under `model/sam3/` remains subject to its original license, provided in [`model/sam3/LICENSE`](model/sam3/LICENSE).
 
