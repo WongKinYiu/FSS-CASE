@@ -314,6 +314,7 @@ If you find **CASE**, **SVPS**, or **CPA** useful in your research, please consi
   primaryClass  = {cs.CV},
   url           = {https://arxiv.org/abs/2610.39396}
 }
+```
 
 ## License
 
