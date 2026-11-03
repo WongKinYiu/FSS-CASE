@@ -2,7 +2,7 @@
 
 ### ACCV 2026
 
-[Paper (coming soon)](#) | [CASE_DATA](https://github.com/WongKinYiu/FSS-CASE/releases/tag/v1.0)
+[Paper](https://arxiv.org/abs/2610.39396) | [CASE_DATA](https://github.com/WongKinYiu/FSS-CASE/releases/tag/v1.0)
 
 <p align="center">
   <img src="assets/teaser.png" width="95%">
@@ -304,7 +304,16 @@ Run each script with `--help` for its required source-annotation paths and optio
 
 If you find **CASE**, **SVPS**, or **CPA** useful in your research, please consider citing our paper.
 
-> BibTeX will be added once the ACCV 2026 paper is publicly available.
+```bibtex
+@misc{tsai2026case,
+  title         = {CASE: Concept-Aware Segmentation from Positive and Negative Visual Exemplars},
+  author        = {Yi-Jen Tsai and Yen-Yu Lin and Chien-Yao Wang},
+  year          = {2026},
+  eprint        = {2610.39396},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV},
+  url           = {https://arxiv.org/abs/2610.39396}
+}
 
 ## License
 
